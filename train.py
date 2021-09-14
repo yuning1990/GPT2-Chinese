@@ -178,6 +178,7 @@ def main():
             if start_point < len(tokens):
                 samples.append(tokens[len(tokens)-n_ctx:])
             random.shuffle(samples)
+            print("total samples ===", len(samples) // batch_size)
             for step in range(len(samples) // batch_size):  # drop last
 
                 #  prepare data
