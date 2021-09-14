@@ -18,16 +18,19 @@ def main():
     print('args:\n' + args.__repr__())
     print('This script is extremely slow especially for large corpus. Take a break.')
 
-    f = open(args.raw_data_path, 'r')
+    f = open(args.raw_data_path, 'r', encoding='utf8')
     lines = json.load(f)
+
     for i, line in enumerate(tqdm(lines)):
         lines[i] = lac.cut(line, text=True)
 
+    print('len lines============', len(lines))
     tokenizer.fit_on_texts(lines)
     vocab = list(tokenizer.index_word.values())
     pre = ['[SEP]', '[CLS]', '[MASK]', '[PAD]', '[UNK]']
     vocab = pre + vocab
-    with open(args.vocab_file, 'w') as f:
+    print(len(vocab))
+    with open(args.vocab_file, 'w', encoding='utf8') as f:
         for word in vocab[:args.vocab_size + 5]:
             f.write(word + '\n')
 
