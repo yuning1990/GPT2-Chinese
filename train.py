@@ -165,6 +165,7 @@ def main():
         random.shuffle(x)
         piece_num = 0
         for i in x:
+            print("begin epoch {}, {}th txt train".format(epoch + 1, i))
             with open(tokenized_data_path + 'tokenized_train_{}.txt'.format(i), 'r') as f:
                 line = f.read().strip()
             tokens = line.split()
