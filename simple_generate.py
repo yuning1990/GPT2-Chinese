@@ -28,7 +28,7 @@ def main():
     parser.add_argument('--no_wordpiece', action='store_true', help='不做word piece切词')
     parser.add_argument('--segment', action='store_true', help='中文以词为单位')
     parser.add_argument('--fast_pattern', action='store_true', help='采用更加快的方式生成文本')
-    parser.add_argument('--save_samples', action='store_true', help='保存产生的样本')
+    parser.add_argument('--save_samples', default=True, help='保存产生的样本')
     parser.add_argument('--save_samples_path', default='.', type=str, required=False, help="保存样本的路径")
     parser.add_argument('--repetition_penalty', default=1.05, type=float, required=False)
 
@@ -67,7 +67,7 @@ def main():
         length = model.config.n_ctx
 
     t = str(datetime.now())
-    d = '_'.join('_'.join(''.join(t.split(":")[:-1]).split(' ')).split('-'))
+    d = ''.join('_'.join(''.join(t.split(":")[:-1]).split(' ')).split('-'))
     if args.model_v != '-1':
         save_samples_path = 'result/{}_v{}'.format(d, args.model_v)
     else:
