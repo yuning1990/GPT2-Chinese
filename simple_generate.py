@@ -68,10 +68,8 @@ def main():
 
     t = str(datetime.now())
     d = ''.join('_'.join(''.join(t.split(":")[:-1]).split(' ')).split('-'))
-    if args.model_v != '-1':
-        save_samples_path = 'result/{}_v{}'.format(d, args.model_v)
-    else:
-        save_samples_path = args.save_samples_path
+    save_samples_path = 'result/{}_v{}'.format(d, args.model_v)
+
 
     if args.save_samples:
         if not os.path.exists(save_samples_path):
