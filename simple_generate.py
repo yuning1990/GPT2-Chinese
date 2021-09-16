@@ -106,7 +106,7 @@ def main():
                     new_text.append(text[i])
                 info = "=" * 40 + " SAMPLE " + str(generated) + " " + "=" * 40 + "\n"
                 print(info)
-                text = ''.join(new_text).replace('##', '').strip()
+                new_text = ''.join(new_text).replace('##', '').strip()
                 print(new_text)
                 if args.save_samples:
                     samples_file.write(info)
