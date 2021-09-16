@@ -79,8 +79,11 @@ def sample_sequence(model, context, length, n_ctx, tokenizer, temperature=1.0, t
             outputs = model(
                 **inputs)  # Note: we could also use 'past' with GPT-2/Transfo-XL/XLNet (cached hidden-states)
             next_token_logits = outputs[0][0, -1, :]
-            for id in set(generated):
-                next_token_logits[id] /= repitition_penalty
+            for id in set(generated[0]):
+                if next_token_logits[id] > 0:
+                    next_token_logits[id] /= repitition_penalty
+                else:
+                    next_token_logits[id] *= repitition_penalty
             next_token_logits = next_token_logits / temperature
             next_token_logits[tokenizer.convert_tokens_to_ids('[UNK]')] = -float('Inf')
             filtered_logits = top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
