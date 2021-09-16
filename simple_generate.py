@@ -94,20 +94,23 @@ def main():
                 for i, item in enumerate(text[:-1]):  # 确保英文前后有空格
                     if is_word(item) and is_word(text[i + 1]):
                         text[i] = item + ' '
+                new_text = []
                 for i, item in enumerate(text):
                     if item == '[MASK]':
                         text[i] = ''
                     elif item == '[CLS]':
-                        text[i] = '\n\n'
+                        break
+                        # text[i] = '\n\n'
                     elif item == '[SEP]':
                         text[i] = '\n'
+                    new_text.append(text[i])
                 info = "=" * 40 + " SAMPLE " + str(generated) + " " + "=" * 40 + "\n"
                 print(info)
-                text = ''.join(text).replace('##', '').strip()
-                print(text)
+                text = ''.join(new_text).replace('##', '').strip()
+                print(new_text)
                 if args.save_samples:
                     samples_file.write(info)
-                    samples_file.write(text)
+                    samples_file.write(new_text)
                     samples_file.write('\n')
                     samples_file.write('=' * 90)
                     samples_file.write('\n' * 2)
