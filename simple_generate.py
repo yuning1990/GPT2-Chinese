@@ -50,7 +50,7 @@ def main():
     topp = args.topp
     repetition_penalty = args.repetition_penalty
     if args.model_v != '-1':
-        model_path = 'model/model_epoch{}'.format(args.model_v)
+        model_path = '{}/model_epoch{}'.format(args.model_path.split('/')[0], args.model_v)
     else:
         model_path = args.model_path
 
