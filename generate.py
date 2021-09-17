@@ -155,7 +155,8 @@ class Generate():
                         if item == '[MASK]':
                             text[i] = ''
                         elif item == '[CLS]':
-                            text[i] = '\n\n'
+                            # text[i] = '\n\n'
+                            break
                         elif item == '[SEP]':
                             text[i] = '\n'
                     info = "=" * 40 + " SAMPLE " + str(generated) + " " + "=" * 40 + "\n"
