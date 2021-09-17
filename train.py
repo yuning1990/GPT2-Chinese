@@ -242,18 +242,14 @@ def main():
                     running_loss = 0
                 overall_step += 1
             piece_num += 1
-            
-        print('saving model for epoch {}'.format(epoch + 1))
-        if not os.path.exists(model_path):
-            os.mkdir(model_path)
-        model_to_save = model.module if hasattr(model, 'module') else model
-        model_to_save.save_pretrained(model_path)
-        print('epoch {} finished'.format(epoch + 1))
 
-        then = datetime.now()
-        print('time: {}'.format(then))
-        print('time for one epoch: {}'.format(then - now))
         if now_epoch % 5 == 0: # 每5个epoch出一次sample
+            print('saving model for epoch {}'.format(now_epoch))
+            if not os.path.exists(model_path):
+                os.mkdir(model_path)
+            model_to_save = model.module if hasattr(model, 'module') else model
+            model_to_save.save_pretrained(model_path)
+            
             args.model_path = model_path
             args.key = output_dir.split('_')[-1]
             args.length = 512
@@ -278,6 +274,13 @@ def main():
             with open(filename, "w", encoding="utf8") as file:
                 json.dump(loss_l, file, indent=2, ensure_ascii=False)
 
+        print('epoch {} finished'.format(now_epoch))
+
+        then = datetime.now()
+        print('time: {}'.format(then))
+        print('time for one epoch: {}'.format(then - now))
+        
+        
     print('training finished')
     if not os.path.exists(output_dir + 'final_model'):
         os.mkdir(output_dir + 'final_model')
