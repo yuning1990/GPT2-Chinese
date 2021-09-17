@@ -253,7 +253,7 @@ def main():
         then = datetime.now()
         print('time: {}'.format(then))
         print('time for one epoch: {}'.format(then - now))
-        if now_epoch % 1 == 0: # 每5个epoch出一次sample
+        if now_epoch % 5 == 0: # 每5个epoch出一次sample
             args.model_path = model_path
             args.key = output_dir.split('_')[-1]
             args.length = 512
