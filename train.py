@@ -5,11 +5,16 @@ import json
 import random
 import numpy as np
 import argparse
-from torch.utils.tensorboard import SummaryWriter
+
 from datetime import datetime
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from torch.nn import DataParallel
+from generate import Generate
 from tokenizations.bpe_tokenizer import get_encoder
+'''
+一边训练，每5个输出1个sample
+'''
 
 
 def build_files(data_path, tokenized_data_path, num_pieces, full_tokenizer, min_length):
@@ -157,7 +162,10 @@ def main():
     print('starting training')
     overall_step = 0
     running_loss = 0
+    loss_l = []
+    
     for epoch in range(epochs):
+        model_path = output_dir + '/model_epoch{}'.format(epoch + 1)
         print('epoch {}'.format(epoch + 1))
         now = datetime.now()
         print('time: {}'.format(now))
@@ -216,29 +224,59 @@ def main():
                     scheduler.step()
                 if (overall_step + 1) % log_step == 0:
                     tb_writer.add_scalar('loss', loss.item() * gradient_accumulation, overall_step)
-                    print('now time: {}:{}. Step {} of piece {} of epoch {}, loss {}'.format(
-                        datetime.now().hour,
-                        datetime.now().minute,
-                        step + 1,
-                        piece_num,
-                        epoch + 1,
-                        running_loss * gradient_accumulation / (log_step / gradient_accumulation)))
+                    now_time = '{}:{}'.format(datetime.now().hour, datetime.now().minute)
+                    now_step = step + 1
+                    now_piece = piece_num
+                    now_epoch = epoch + 1
+                    now_loss = running_loss * gradient_accumulation / (log_step / gradient_accumulation)
+                    print('Now time: {}, Step {} of piece {} of epoch {}, Loss {}'.format(
+                        now_time,
+                        now_step,
+                        now_piece,
+                        now_epoch,
+                        now_loss
+                        ))
+                    loss_l.append({'now_time': now_time,\
+                        'step': now_step, 'piece': now_piece,\
+                        'epoch': now_epoch, 'loss': now_loss})
                     running_loss = 0
                 overall_step += 1
             piece_num += 1
-
+            
         print('saving model for epoch {}'.format(epoch + 1))
-        if not os.path.exists(output_dir + 'model_epoch{}'.format(epoch + 1)):
-            os.mkdir(output_dir + 'model_epoch{}'.format(epoch + 1))
+        if not os.path.exists(model_path):
+            os.mkdir(model_path)
         model_to_save = model.module if hasattr(model, 'module') else model
-        model_to_save.save_pretrained(output_dir + 'model_epoch{}'.format(epoch + 1))
-        # torch.save(scheduler.state_dict(), output_dir + 'model_epoch{}/scheduler.pt'.format(epoch + 1))
-        # torch.save(optimizer.state_dict(), output_dir + 'model_epoch{}/optimizer.pt'.format(epoch + 1))
+        model_to_save.save_pretrained(model_path)
         print('epoch {} finished'.format(epoch + 1))
 
         then = datetime.now()
         print('time: {}'.format(then))
         print('time for one epoch: {}'.format(then - now))
+        if now_epoch % 1 == 0: # 每5个epoch出一次sample
+            args.model_path = model_path
+            args.key = output_dir.split('_')[-1]
+            args.length = 512
+            args.nsamples = 1
+            args.temperature = 1.0
+            args.topk = 40
+            args.topp = 0
+            args.repetition_penalty = 1.05
+            args.save_samples = True
+            args.fast_pattern = False
+            
+            t = str(datetime.now())
+            d = ''.join('_'.join(''.join(t.split(":")[:-1]).split(' ')).split('-'))
+            args.save_samples_path = 'result_{}/{}_v{}/'.format(args.key, d, now_epoch)
+            # print('args.key===', args.key)
+            if 'intro' in args.key:
+                args.prefix = '[MASK][姓名]：小闹闹\n[年龄]：27\n[省份]：山东\n[大学]：西贝大学\n[学位]：本科\n[专业]：生物\n[成绩]：全班第一\n[荣誉]：三好学生\n[入职行业]：生物制药\n[正文]：'
+            
+            Generate().run(args)
+            # 及时存一下loss
+            filename = args.save_samples_path + 'loss.json'
+            with open(filename, "w", encoding="utf8") as file:
+                json.dump(loss_l, file, indent=2, ensure_ascii=False)
 
     print('training finished')
     if not os.path.exists(output_dir + 'final_model'):
