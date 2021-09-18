@@ -50,6 +50,8 @@ class Generate():
         context = context.unsqueeze(0)
         generated = context
         with torch.no_grad():
+            cls_id = tokenizer.convert_tokens_to_ids('[CLS]')
+            print('cls_id====', cls_id, type(cls_id))
             for _ in trange(length):
                 inputs = {'input_ids': generated[0][-(n_ctx - 1):].unsqueeze(0)}
                 outputs = model(
@@ -64,6 +66,9 @@ class Generate():
                 next_token_logits[tokenizer.convert_tokens_to_ids('[UNK]')] = -float('Inf')
                 filtered_logits = self.top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
                 next_token = torch.multinomial(F.softmax(filtered_logits, dim=-1), num_samples=1)
+
+                if next_token.item() == cls_id: # 到了CLS就结束
+                    break
                 generated = torch.cat((generated, next_token.unsqueeze(0)), dim=1)
         return generated.tolist()[0]
 
@@ -145,12 +150,15 @@ class Generate():
                     temperature=temperature, top_k=topk, top_p=topp,\
                     repitition_penalty=repetition_penalty, device=device
                 )
+                
                 for i in range(batch_size):
                     generated += 1
                     text = tokenizer.convert_ids_to_tokens(out)
                     for i, item in enumerate(text[:-1]):  # 确保英文前后有空格
                         if self.is_word(item) and self.is_word(text[i + 1]):
                             text[i] = item + ' '
+
+                    new_text = []
                     for i, item in enumerate(text):
                         if item == '[MASK]':
                             text[i] = ''
@@ -159,13 +167,14 @@ class Generate():
                             break
                         elif item == '[SEP]':
                             text[i] = '\n'
+                        new_text.append(text[i])
+
                     info = "=" * 40 + " SAMPLE " + str(generated) + " " + "=" * 40 + "\n"
-                    print(info)
-                    text = ''.join(text).replace('##', '').strip()
-                    print(text)
+                    new_text = ''.join(new_text).replace('##', '').strip()
+                    print(info, new_text)
                     if args.save_samples:
                         samples_file.write(info)
-                        samples_file.write(text)
+                        samples_file.write(new_text)
                         samples_file.write('\n')
                         samples_file.write('=' * 90)
                         samples_file.write('\n' * 2)
