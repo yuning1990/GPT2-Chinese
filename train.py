@@ -66,7 +66,7 @@ def main():
     parser.add_argument('--num_pieces', default=100, type=int, required=False, help='将训练语料分成多少份')
     parser.add_argument('--min_length', default=128, type=int, required=False, help='最短收录文章长度')
     parser.add_argument('--output_dir', default='model/', type=str, required=False, help='模型输出路径')
-    parser.add_argument('--per_num_epochs_save_models', default='5', type=str, required=False, help='每过几个循环保存一下模型')
+    parser.add_argument('--per_num_epochs_save_models', default=5, type=int, required=False, help='每过几个循环保存一下模型')
     parser.add_argument('--pretrained_model', default='', type=str, required=False, help='模型训练起点路径')
     parser.add_argument('--writer_dir', default='tensorboard_summary/', type=str, required=False, help='Tensorboard路径')
     parser.add_argument('--segment', action='store_true', help='中文以词为单位')
