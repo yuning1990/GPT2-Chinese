@@ -272,14 +272,16 @@ def main():
                         int_ids = [int(x) for x in ids]
                         batch_inputs.append(int_ids)
                     batch_inputs = torch.tensor(batch_inputs).long().to(device)
+                    print('batch_inputs100====', batch_inputs[:100])
                     outputs = model(input_ids=batch_inputs, labels=batch_inputs)
+                    print('batch_outputs1-101====',outputs[1][1:101])
                     v_loss += outputs[0].item()
                     #  get loss
                     if multi_gpu:
                         loss = loss.mean()
                     v_steps += 1
 
-            v_loss = float(v_loss / v_steps, 2)
+            v_loss = v_loss / v_steps
             now_time = '{}:{}'.format(datetime.now().hour, datetime.now().minute)
             print('Now time: {}, Epoch {}, Loss {}, Validation Loss {}'.format(
                 now_time,
