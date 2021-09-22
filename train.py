@@ -182,6 +182,7 @@ def main():
     overall_step = 0
     running_loss = 0
     loss_l = []
+    v_loss_l = []
     
     for epoch in range(epochs):
         model_path = output_dir + '/model_epoch{}'.format(epoch + 1)
@@ -272,10 +273,9 @@ def main():
                         int_ids = [int(x) for x in ids]
                         batch_inputs.append(int_ids)
                     batch_inputs = torch.tensor(batch_inputs).long().to(device)
-                    print('batch_inputs100====', batch_inputs[:100])
-                    outputs = model(input_ids=batch_inputs, labels=batch_inputs)
-                    print('batch_outputs1-101====',outputs[1][1:101])
-                    v_loss += outputs[0].item()
+                    for j in len(batch_inputs-1):
+                        outputs = model(input_ids=batch_inputs[:j], labels=batch_inputs[j+1])
+                        v_loss += outputs[0].item()
                     #  get loss
                     if multi_gpu:
                         loss = loss.mean()
@@ -289,7 +289,7 @@ def main():
                 now_loss,
                 v_loss
                 ))
-            loss_l.append({'now_time': now_time,\
+            v_loss_l.append({'now_time': now_time,\
                 'epoch': now_epoch, 'loss': now_loss,
                 'v_loss': v_loss})
 
@@ -324,7 +324,9 @@ def main():
             filename = args.save_samples_path + 'loss.json'
             with open(filename, "w", encoding="utf8") as file:
                 json.dump(loss_l, file, indent=2, ensure_ascii=False)
-
+            with open(args.save_samples_path + 'v_loss.json') as file:
+                json.dump(v_loss_l, file, indent=2, ensure_ascii=False)
+ 
         print('epoch {} finished'.format(now_epoch))
 
         then = datetime.now()
