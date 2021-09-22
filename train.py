@@ -309,7 +309,7 @@ def main():
                 now_loss,
                 v_loss
                 ))
-            loss_l.append({'now_time': loss_time,\
+            loss_l.append({'now_time': now_time,\
                 'epoch': now_epoch, 'loss': now_loss,
                 'v_loss': v_loss})
 
