@@ -273,9 +273,9 @@ def main():
                         int_ids = [int(x) for x in ids]
                         batch_inputs.append(int_ids)
                     batch_inputs = torch.tensor(batch_inputs).long().to(device)
-                    for j in len(batch_inputs-1):
-                        outputs = model(input_ids=batch_inputs[:j], labels=batch_inputs[j+1])
-                        v_loss += outputs[0].item()
+                    # for j in len(batch_inputs-1):
+                    outputs = model(input_ids=batch_inputs, labels=batch_inputs)
+                    v_loss += outputs[0].item()
                     #  get loss
                     if multi_gpu:
                         loss = loss.mean()
