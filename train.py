@@ -42,6 +42,26 @@ def build_files(data_path, tokenized_data_path, num_pieces, full_tokenizer, min_
                 f.write(str(id) + ' ')
     print('finish')
 
+def get_total_steps_and_all_tokens(tokenized_data_path, num_pieces):
+    all_tokens = {}
+    full_len = 0
+    for i in tqdm(range(num_pieces)):
+        with open(tokenized_data_path + 'tokenized_train_{}.txt'.format(i), 'r') as f:
+            tokens = f.read().strip().split()
+            full_len += len(tokens)
+            all_tokens[i] = [int(token) for token in tokens]
+    return full_len, all_tokens
+
+def get_samples(tokens, n_ctx, stride):
+    start_point = 0
+    samples = []
+    while start_point < len(tokens) - n_ctx:
+        samples.append(tokens[start_point: start_point + n_ctx])
+        start_point += stride
+    if start_point < len(tokens):
+        samples.append(tokens[len(tokens)-n_ctx:])
+    random.shuffle(samples)
+    return samples
 
 def main():
     parser = argparse.ArgumentParser()
@@ -128,8 +148,8 @@ def main():
         model = transformers.modeling_gpt2.GPT2LMHeadModel(config=model_config)
     else:
         model = transformers.modeling_gpt2.GPT2LMHeadModel.from_pretrained(args.pretrained_model)
-    model.train()
-    model.to(device)
+
+    model = model.to(device)
 
     num_parameters = 0
     parameters = model.parameters()
@@ -138,11 +158,9 @@ def main():
     print('number of parameters: {}'.format(num_parameters))
 
     multi_gpu = False
-    full_len = 0
     print('calculating total steps')
-    for i in tqdm(range(num_pieces)):
-        with open(tokenized_data_path + 'tokenized_train_{}.txt'.format(i), 'r') as f:
-            full_len += len([int(item) for item in f.read().strip().split()])
+
+    full_len, all_tokens = get_total_steps_and_all_tokens(tokenized_data_path, num_pieces)
     total_steps = int(full_len / stride * epochs / batch_size / gradient_accumulation)
     print('total steps = {}'.format(total_steps))
 
@@ -172,24 +190,17 @@ def main():
         print('time: {}'.format(now))
         x = np.linspace(0, num_pieces - 1, num_pieces, dtype=np.int32)
         random.shuffle(x)
+        train = x[: int(len(x)/5*4)]
+        test = x[int(len(x)/5*4):]
         piece_num = 0
-        for i in x:
+        
+        # begin each epoch train
+        model.train()
+        for i in train: # 4/5用来train，1/5用来validate
             print("begin epoch {}, {}th txt train".format(epoch + 1, i))
-            with open(tokenized_data_path + 'tokenized_train_{}.txt'.format(i), 'r') as f:
-                line = f.read().strip()
-            tokens = line.split()
-            tokens = [int(token) for token in tokens]
-            start_point = 0
-            samples = []
-            while start_point < len(tokens) - n_ctx:
-                samples.append(tokens[start_point: start_point + n_ctx])
-                start_point += stride
-            if start_point < len(tokens):
-                samples.append(tokens[len(tokens)-n_ctx:])
-            random.shuffle(samples)
-            print("total samples ===", len(samples) // batch_size)
+            tokens = all_tokens[i]
+            samples = get_samples(tokens, n_ctx, stride)
             for step in range(len(samples) // batch_size):  # drop last
-
                 #  prepare data
                 batch = samples[step * batch_size: (step + 1) * batch_size]
                 batch_inputs = []
@@ -200,7 +211,7 @@ def main():
 
                 #  forward pass
                 outputs = model.forward(input_ids=batch_inputs, labels=batch_inputs)
-                loss, logits = outputs[:2]
+                loss, _ = outputs[:2]
 
                 #  get loss
                 if multi_gpu:
@@ -243,7 +254,7 @@ def main():
                     running_loss = 0
                 overall_step += 1
             piece_num += 1
-
+                    
         if now_epoch % args.per_num_epochs_save_models == 0: # 每5个epoch出一次sample
             print('saving model for epoch {}'.format(now_epoch))
             if not os.path.exists(model_path):
@@ -274,6 +285,33 @@ def main():
             filename = args.save_samples_path + 'loss.json'
             with open(filename, "w", encoding="utf8") as file:
                 json.dump(loss_l, file, indent=2, ensure_ascii=False)
+        
+        # validate
+        model.eval()
+        with torch.no_grad():
+            v_loss = 0
+            for i in test:
+                for step in range(len(samples) // batch_size):  # drop last
+                    #  prepare data
+                    batch = samples[step * batch_size: (step + 1) * batch_size]
+                    batch_inputs = []
+                    for ids in batch:
+                        int_ids = [int(x) for x in ids]
+                        batch_inputs.append(int_ids)
+                    batch_inputs = torch.tensor(batch_inputs).long().to(device)
+                    outputs = model(input_ids=batch_inputs, labels=batch_inputs)
+                    v_loss += outputs[0]
+            
+            now_time = '{}:{}'.format(datetime.now().hour, datetime.now().minute)
+            print('Now time: {}, Epoch {}, Loss {}, Validation Loss {}'.format(
+                now_time,
+                now_epoch,
+                now_loss,
+                v_loss
+                ))
+            loss_l.append({'now_time': loss_time,\
+                'epoch': now_epoch, 'loss': now_loss,
+                'v_loss': v_loss})
 
         print('epoch {} finished'.format(now_epoch))
 
