@@ -194,7 +194,7 @@ def main():
         test = x[int(len(x)/5*4):]
         piece_num = 0
         
-        # begin each epoch train
+        ## begin each epoch train
         model.train()
         for i in train: # 4/5用来train，1/5用来validate
             print("begin epoch {}, {}th txt train".format(epoch + 1, i))
@@ -254,7 +254,44 @@ def main():
                     running_loss = 0
                 overall_step += 1
             piece_num += 1
-                    
+        
+        ## validate
+        model.eval()
+        with torch.no_grad():
+            v_loss = 0
+            v_steps = 0
+            for i in test:
+                print("begin epoch {}, {}th txt test".format(epoch + 1, i))
+                tokens = all_tokens[i]
+                samples = get_samples(tokens, n_ctx, stride)
+                for step in range(len(samples) // batch_size):  # drop last
+                    #  prepare data
+                    batch = samples[step * batch_size: (step + 1) * batch_size]
+                    batch_inputs = []
+                    for ids in batch:
+                        int_ids = [int(x) for x in ids]
+                        batch_inputs.append(int_ids)
+                    batch_inputs = torch.tensor(batch_inputs).long().to(device)
+                    outputs = model(input_ids=batch_inputs, labels=batch_inputs)
+                    v_loss += outputs[0].item()
+                    #  get loss
+                    if multi_gpu:
+                        loss = loss.mean()
+                    v_steps += 1
+
+            v_loss = float(v_loss / v_steps, 2)
+            now_time = '{}:{}'.format(datetime.now().hour, datetime.now().minute)
+            print('Now time: {}, Epoch {}, Loss {}, Validation Loss {}'.format(
+                now_time,
+                now_epoch,
+                now_loss,
+                v_loss
+                ))
+            loss_l.append({'now_time': now_time,\
+                'epoch': now_epoch, 'loss': now_loss,
+                'v_loss': v_loss})
+
+        ## sample
         if now_epoch % args.per_num_epochs_save_models == 0: # 每5个epoch出一次sample
             print('saving model for epoch {}'.format(now_epoch))
             if not os.path.exists(model_path):
@@ -285,33 +322,6 @@ def main():
             filename = args.save_samples_path + 'loss.json'
             with open(filename, "w", encoding="utf8") as file:
                 json.dump(loss_l, file, indent=2, ensure_ascii=False)
-        
-        # validate
-        model.eval()
-        with torch.no_grad():
-            v_loss = 0
-            for i in test:
-                for step in range(len(samples) // batch_size):  # drop last
-                    #  prepare data
-                    batch = samples[step * batch_size: (step + 1) * batch_size]
-                    batch_inputs = []
-                    for ids in batch:
-                        int_ids = [int(x) for x in ids]
-                        batch_inputs.append(int_ids)
-                    batch_inputs = torch.tensor(batch_inputs).long().to(device)
-                    outputs = model(input_ids=batch_inputs, labels=batch_inputs)
-                    v_loss += outputs[0]
-            
-            now_time = '{}:{}'.format(datetime.now().hour, datetime.now().minute)
-            print('Now time: {}, Epoch {}, Loss {}, Validation Loss {}'.format(
-                now_time,
-                now_epoch,
-                now_loss,
-                v_loss
-                ))
-            loss_l.append({'now_time': now_time,\
-                'epoch': now_epoch, 'loss': now_loss,
-                'v_loss': v_loss})
 
         print('epoch {} finished'.format(now_epoch))
 
