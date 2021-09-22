@@ -324,7 +324,7 @@ def main():
             filename = args.save_samples_path + 'loss.json'
             with open(filename, "w", encoding="utf8") as file:
                 json.dump(loss_l, file, indent=2, ensure_ascii=False)
-            with open(args.save_samples_path + 'v_loss.json') as file:
+            with open(args.save_samples_path + 'v_loss.json', "w", encoding="utf8") as file:
                 json.dump(v_loss_l, file, indent=2, ensure_ascii=False)
  
         print('epoch {} finished'.format(now_epoch))
