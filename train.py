@@ -318,6 +318,8 @@ def main():
             # print('args.key===', args.key)
             if 'intro' in args.key:
                 args.prefix = '[MASK][姓名]：小闹闹\n[年龄]：27\n[省份]：山东\n[大学]：西贝大学\n[学位]：本科\n[专业]：生物\n[成绩]：全班第一\n[荣誉]：三好学生\n[入职行业]：生物制药\n[正文]：'
+            elif 'pingfan' in args.key:
+                args.prefix = '[MASK]少安站在窗边，'
             
             Generate().run(args)
             # 及时存一下loss
